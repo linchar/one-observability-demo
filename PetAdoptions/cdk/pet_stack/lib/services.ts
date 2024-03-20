@@ -42,8 +42,7 @@ export class Services extends Stack {
         super(scope, id, props);
 
         var isEventEngine = 'false';
-        if (this.node.tryGetContext('is_event_engine') != undefined)
-        {
+        if (this.node.tryGetContext('is_event_engine') != undefined) {
             isEventEngine = this.node.tryGetContext('is_event_engine');
         }
 
@@ -57,8 +56,7 @@ export class Services extends Stack {
         // Create SNS and an email topic to send notifications to
         const topic_petadoption = new sns.Topic(this, 'topic_petadoption');
         var topic_email = this.node.tryGetContext('snstopic_email');
-        if (topic_email == undefined)
-        {
+        if (topic_email == undefined) {
             topic_email = "someone@example.com";
         }
         topic_petadoption.addSubscription(new subs.EmailSubscription(topic_email));
@@ -81,23 +79,23 @@ export class Services extends Stack {
                 name: 'petid',
                 type: ddb.AttributeType.STRING
             },
-            removalPolicy:  RemovalPolicy.DESTROY
+            removalPolicy: RemovalPolicy.DESTROY
         });
 
-        dynamodb_petadoption.metric('WriteThrottleEvents',{statistic:"avg"}).createAlarm(this, 'WriteThrottleEvents-BasicAlarm', {
-          threshold: 0,
-          treatMissingData: TreatMissingData.NOT_BREACHING,
-          comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
-          evaluationPeriods: 1,
-          alarmName: `${dynamodb_petadoption.tableName}-WriteThrottleEvents-BasicAlarm`,
+        dynamodb_petadoption.metric('WriteThrottleEvents', { statistic: "avg" }).createAlarm(this, 'WriteThrottleEvents-BasicAlarm', {
+            threshold: 0,
+            treatMissingData: TreatMissingData.NOT_BREACHING,
+            comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+            evaluationPeriods: 1,
+            alarmName: `${dynamodb_petadoption.tableName}-WriteThrottleEvents-BasicAlarm`,
         });
 
-        dynamodb_petadoption.metric('ReadThrottleEvents',{statistic:"avg"}).createAlarm(this, 'ReadThrottleEvents-BasicAlarm', {
-          threshold: 0,
-          treatMissingData: TreatMissingData.NOT_BREACHING,
-          comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
-          evaluationPeriods: 1,
-          alarmName: `${dynamodb_petadoption.tableName}-ReadThrottleEvents-BasicAlarm`,
+        dynamodb_petadoption.metric('ReadThrottleEvents', { statistic: "avg" }).createAlarm(this, 'ReadThrottleEvents-BasicAlarm', {
+            threshold: 0,
+            treatMissingData: TreatMissingData.NOT_BREACHING,
+            comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+            evaluationPeriods: 1,
+            alarmName: `${dynamodb_petadoption.tableName}-ReadThrottleEvents-BasicAlarm`,
         });
 
 
@@ -110,8 +108,7 @@ export class Services extends Stack {
 
 
         var cidrRange = this.node.tryGetContext('vpc_cidr');
-        if (cidrRange == undefined)
-        {
+        if (cidrRange == undefined) {
             cidrRange = "11.0.0.0/16";
         }
         // The VPC where all the microservices will be deployed into
@@ -130,15 +127,14 @@ export class Services extends Stack {
         rdssecuritygroup.addIngressRule(ec2.Peer.ipv4(theVPC.vpcCidrBlock), ec2.Port.tcp(5432), 'Allow Aurora PG access from within the VPC CIDR range');
 
         var rdsUsername = this.node.tryGetContext('rdsusername');
-        if (rdsUsername == undefined)
-        {
+        if (rdsUsername == undefined) {
             rdsUsername = "petadmin"
         }
 
         const auroraCluster = new rds.ServerlessCluster(this, 'Database', {
 
             engine: rds.DatabaseClusterEngine.auroraPostgres({ version: rds.AuroraPostgresEngineVersion.VER_13_9 }),
- 
+
             parameterGroup: rds.ParameterGroup.fromParameterGroupName(this, 'ParameterGroup', 'default.aurora-postgresql13'),
             vpc: theVPC,
             securityGroups: [rdssecuritygroup],
@@ -199,7 +195,7 @@ export class Services extends Stack {
             // build locally
             //repositoryURI: repositoryURI,
             database: auroraCluster,
-            desiredTaskCount : 2,
+            desiredTaskCount: 2,
             region: region,
             securityGroup: ecsServicesSecurityGroup
         });
@@ -267,12 +263,12 @@ export class Services extends Stack {
         });
 
 
-        const albSG = new ec2.SecurityGroup(this,'ALBSecurityGroup',{
+        const albSG = new ec2.SecurityGroup(this, 'ALBSecurityGroup', {
             vpc: theVPC,
             securityGroupName: 'ALBSecurityGroup',
             allowAllOutbound: true
         });
-        albSG.addIngressRule(ec2.Peer.anyIpv4(),ec2.Port.tcp(80));
+        albSG.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80));
 
         // PetSite - Create ALB and Target Groups
         const alb = new elbv2.ApplicationLoadBalancer(this, 'PetSiteLoadBalancer', {
@@ -290,10 +286,10 @@ export class Services extends Stack {
 
         });
 
-        new ssm.StringParameter(this,"putParamTargetGroupArn",{
+        new ssm.StringParameter(this, "putParamTargetGroupArn", {
             stringValue: targetGroup.targetGroupArn,
             parameterName: '/eks/petsite/TargetGroupArn'
-          })
+        })
 
         const listener = alb.addListener('Listener', {
             port: 80,
@@ -320,7 +316,7 @@ export class Services extends Stack {
             targetGroups: [petadoptionshistory_targetGroup]
         });
 
-        new ssm.StringParameter(this,"putPetHistoryParamTargetGroupArn",{
+        new ssm.StringParameter(this, "putPetHistoryParamTargetGroupArn", {
             stringValue: petadoptionshistory_targetGroup.targetGroupArn,
             parameterName: '/eks/pethistory/TargetGroupArn'
         });
@@ -330,10 +326,10 @@ export class Services extends Stack {
             assumedBy: new iam.AccountRootPrincipal()
         });
 
-        new ssm.StringParameter(this,"putParam",{
+        new ssm.StringParameter(this, "putParam", {
             stringValue: clusterAdmin.roleArn,
             parameterName: '/eks/petsite/EKSMasterRoleArn'
-          })
+        })
 
         const secretsKey = new kms.Key(this, 'SecretsKey');
         const cluster = new eks.Cluster(this, 'petsite', {
@@ -344,21 +340,21 @@ export class Services extends Stack {
             defaultCapacityInstance: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MEDIUM),
             secretsEncryptionKey: secretsKey,
             version: KubernetesVersion.of('1.27'),
-            kubectlLayer: new KubectlLayer(this, 'kubectl') 
+            kubectlLayer: new KubectlLayer(this, 'kubectl')
         });
 
-        const clusterSG = ec2.SecurityGroup.fromSecurityGroupId(this,'ClusterSG',cluster.clusterSecurityGroupId);
-        clusterSG.addIngressRule(albSG,ec2.Port.allTraffic(),'Allow traffic from the ALB');
-        clusterSG.addIngressRule(ec2.Peer.ipv4(theVPC.vpcCidrBlock),ec2.Port.tcp(443),'Allow local access to k8s api');
+        const clusterSG = ec2.SecurityGroup.fromSecurityGroupId(this, 'ClusterSG', cluster.clusterSecurityGroupId);
+        clusterSG.addIngressRule(albSG, ec2.Port.allTraffic(), 'Allow traffic from the ALB');
+        clusterSG.addIngressRule(ec2.Peer.ipv4(theVPC.vpcCidrBlock), ec2.Port.tcp(443), 'Allow local access to k8s api');
 
 
         // Add SSM Permissions to the node role
         cluster.defaultNodegroup?.role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore"));
 
         // From https://github.com/aws-samples/ssm-agent-daemonset-installer
-        var ssmAgentSetup = yaml.loadAll(readFileSync("./resources/setup-ssm-agent.yaml","utf8")) as Record<string,any>[];
+        var ssmAgentSetup = yaml.loadAll(readFileSync("./resources/setup-ssm-agent.yaml", "utf8")) as Record<string, any>[];
 
-        const ssmAgentSetupManifest = new eks.KubernetesManifest(this,"ssmAgentdeployment",{
+        const ssmAgentSetupManifest = new eks.KubernetesManifest(this, "ssmAgentdeployment", {
             cluster: cluster,
             manifest: ssmAgentSetup
         });
@@ -373,21 +369,21 @@ export class Services extends Stack {
             {
                 StringEquals: new CfnJson(this, "CW_FederatedPrincipalCondition", {
                     value: {
-                        [`oidc.eks.${region}.amazonaws.com/id/${clusterId}:aud` ]: "sts.amazonaws.com"
+                        [`oidc.eks.${region}.amazonaws.com/id/${clusterId}:aud`]: "sts.amazonaws.com"
                     }
                 })
             }
         );
         const cw_trustRelationship = new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            principals: [ cw_federatedPrincipal ],
+            principals: [cw_federatedPrincipal],
             actions: ["sts:AssumeRoleWithWebIdentity"]
         });
 
         // Create IAM roles for Service Accounts
         // Cloudwatch Agent SA
         const cwserviceaccount = new iam.Role(this, 'CWServiceAccount', {
-//                assumedBy: eksFederatedPrincipal,
+            //                assumedBy: eksFederatedPrincipal,
             assumedBy: new iam.AccountRootPrincipal(),
             managedPolicies: [
                 iam.ManagedPolicy.fromManagedPolicyArn(this, 'CWServiceAccount-CloudWatchAgentServerPolicy', 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy')
@@ -400,20 +396,20 @@ export class Services extends Stack {
             {
                 StringEquals: new CfnJson(this, "Xray_FederatedPrincipalCondition", {
                     value: {
-                        [`oidc.eks.${region}.amazonaws.com/id/${clusterId}:aud` ]: "sts.amazonaws.com"
+                        [`oidc.eks.${region}.amazonaws.com/id/${clusterId}:aud`]: "sts.amazonaws.com"
                     }
                 })
             }
         );
         const xray_trustRelationship = new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            principals: [ xray_federatedPrincipal ],
+            principals: [xray_federatedPrincipal],
             actions: ["sts:AssumeRoleWithWebIdentity"]
         });
 
         // X-Ray Agent SA
         const xrayserviceaccount = new iam.Role(this, 'XRayServiceAccount', {
-//                assumedBy: eksFederatedPrincipal,
+            //                assumedBy: eksFederatedPrincipal,
             assumedBy: new iam.AccountRootPrincipal(),
             managedPolicies: [
                 iam.ManagedPolicy.fromManagedPolicyArn(this, 'XRayServiceAccount-AWSXRayDaemonWriteAccess', 'arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess')
@@ -426,21 +422,21 @@ export class Services extends Stack {
             {
                 StringEquals: new CfnJson(this, "LB_FederatedPrincipalCondition", {
                     value: {
-                        [`oidc.eks.${region}.amazonaws.com/id/${clusterId}:aud` ]: "sts.amazonaws.com"
+                        [`oidc.eks.${region}.amazonaws.com/id/${clusterId}:aud`]: "sts.amazonaws.com"
                     }
                 })
             }
         );
         const loadBalancer_trustRelationship = new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            principals: [ loadbalancer_federatedPrincipal ],
+            principals: [loadbalancer_federatedPrincipal],
             actions: ["sts:AssumeRoleWithWebIdentity"]
         });
 
-        const loadBalancerPolicyDoc = iam.PolicyDocument.fromJson(JSON.parse(readFileSync("./resources/load_balancer/iam_policy.json","utf8")));
-        const loadBalancerPolicy = new iam.ManagedPolicy(this,'LoadBalancerSAPolicy', { document: loadBalancerPolicyDoc });
+        const loadBalancerPolicyDoc = iam.PolicyDocument.fromJson(JSON.parse(readFileSync("./resources/load_balancer/iam_policy.json", "utf8")));
+        const loadBalancerPolicy = new iam.ManagedPolicy(this, 'LoadBalancerSAPolicy', { document: loadBalancerPolicyDoc });
         const loadBalancerserviceaccount = new iam.Role(this, 'LoadBalancerServiceAccount', {
-//                assumedBy: eksFederatedPrincipal,
+            //                assumedBy: eksFederatedPrincipal,
             assumedBy: new iam.AccountRootPrincipal(),
             managedPolicies: [loadBalancerPolicy]
         });
@@ -449,40 +445,39 @@ export class Services extends Stack {
 
         // Fix for EKS Dashboard access
 
-        const dashboardRoleYaml = yaml.loadAll(readFileSync("./resources/dashboard.yaml","utf8")) as Record<string,any>[];
+        const dashboardRoleYaml = yaml.loadAll(readFileSync("./resources/dashboard.yaml", "utf8")) as Record<string, any>[];
 
         const dashboardRoleArn = this.node.tryGetContext('dashboard_role_arn');
-        if((dashboardRoleArn != undefined)&&(dashboardRoleArn.length > 0)) {
-            const role = iam.Role.fromRoleArn(this, "DashboardRoleArn",dashboardRoleArn,{mutable:false});
-            cluster.awsAuth.addRoleMapping(role,{groups:["dashboard-view"]});
+        if ((dashboardRoleArn != undefined) && (dashboardRoleArn.length > 0)) {
+            const role = iam.Role.fromRoleArn(this, "DashboardRoleArn", dashboardRoleArn, { mutable: false });
+            cluster.awsAuth.addRoleMapping(role, { groups: ["dashboard-view"] });
         }
 
-        if (isEventEngine === 'true')
-        {
+        if (isEventEngine === 'true') {
 
             var c9Env = new Cloud9Environment(this, 'Cloud9Environment', {
                 vpcId: theVPC.vpcId,
                 subnetId: theVPC.publicSubnets[0].subnetId,
                 cloud9OwnerArn: "assumed-role/WSParticipantRole/Participant",
                 templateFile: __dirname + "/../../../../cloud9-cfn.yaml"
-            
+
             });
-    
+
             var c9role = c9Env.c9Role;
 
             // Dynamically check if AWSCloud9SSMAccessRole and AWSCloud9SSMInstanceProfile exists
-            const c9SSMRole = new iam.Role(this,'AWSCloud9SSMAccessRole', {
+            const c9SSMRole = new iam.Role(this, 'AWSCloud9SSMAccessRole', {
                 path: '/service-role/',
                 roleName: 'AWSCloud9SSMAccessRole',
                 assumedBy: new iam.CompositePrincipal(new iam.ServicePrincipal("ec2.amazonaws.com"), new iam.ServicePrincipal("cloud9.amazonaws.com")),
-                managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName("AWSCloud9SSMInstanceProfile"),iam.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess")]
+                managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName("AWSCloud9SSMInstanceProfile"), iam.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess")]
             });
 
-            const teamRole = iam.Role.fromRoleArn(this,'TeamRole',"arn:aws:iam::" + stack.account +":role/WSParticipantRole");
-            cluster.awsAuth.addRoleMapping(teamRole,{groups:["dashboard-view"]});
-            
+            const teamRole = iam.Role.fromRoleArn(this, 'TeamRole', "arn:aws:iam::" + stack.account + ":role/WSParticipantRole");
+            cluster.awsAuth.addRoleMapping(teamRole, { groups: ["dashboard-view"] });
 
-            if (c9role!=undefined) {
+
+            if (c9role != undefined) {
                 cluster.awsAuth.addMastersRole(iam.Role.fromRoleArn(this, 'c9role', c9role.attrArn, { mutable: false }));
             }
 
@@ -490,35 +485,35 @@ export class Services extends Stack {
         }
 
         const eksAdminArn = this.node.tryGetContext('admin_role');
-        if ((eksAdminArn!=undefined)&&(eksAdminArn.length > 0)) {
-            const role = iam.Role.fromRoleArn(this,"ekdAdminRoleArn",eksAdminArn,{mutable:false});
+        if ((eksAdminArn != undefined) && (eksAdminArn.length > 0)) {
+            const role = iam.Role.fromRoleArn(this, "ekdAdminRoleArn", eksAdminArn, { mutable: false });
             cluster.awsAuth.addMastersRole(role)
         }
 
-        const dahshboardManifest = new eks.KubernetesManifest(this,"k8sdashboardrbac",{
+        const dahshboardManifest = new eks.KubernetesManifest(this, "k8sdashboardrbac", {
             cluster: cluster,
             manifest: dashboardRoleYaml
         });
 
 
-        var xRayYaml = yaml.loadAll(readFileSync("./resources/k8s_petsite/xray-daemon-config.yaml","utf8")) as Record<string,any>[];
+        var xRayYaml = yaml.loadAll(readFileSync("./resources/k8s_petsite/xray-daemon-config.yaml", "utf8")) as Record<string, any>[];
 
-        xRayYaml[0].metadata.annotations["eks.amazonaws.com/role-arn"] = new CfnJson(this, "xray_Role", { value : `${xrayserviceaccount.roleArn}` });
+        xRayYaml[0].metadata.annotations["eks.amazonaws.com/role-arn"] = new CfnJson(this, "xray_Role", { value: `${xrayserviceaccount.roleArn}` });
 
-        const xrayManifest = new eks.KubernetesManifest(this,"xraydeployment",{
+        const xrayManifest = new eks.KubernetesManifest(this, "xraydeployment", {
             cluster: cluster,
             manifest: xRayYaml
         });
 
-        var loadBalancerServiceAccountYaml  = yaml.loadAll(readFileSync("./resources/load_balancer/service_account.yaml","utf8")) as Record<string,any>[];
-        loadBalancerServiceAccountYaml[0].metadata.annotations["eks.amazonaws.com/role-arn"] = new CfnJson(this, "loadBalancer_Role", { value : `${loadBalancerserviceaccount.roleArn}` });
+        var loadBalancerServiceAccountYaml = yaml.loadAll(readFileSync("./resources/load_balancer/service_account.yaml", "utf8")) as Record<string, any>[];
+        loadBalancerServiceAccountYaml[0].metadata.annotations["eks.amazonaws.com/role-arn"] = new CfnJson(this, "loadBalancer_Role", { value: `${loadBalancerserviceaccount.roleArn}` });
 
-        const loadBalancerServiceAccount = new eks.KubernetesManifest(this, "loadBalancerServiceAccount",{
+        const loadBalancerServiceAccount = new eks.KubernetesManifest(this, "loadBalancerServiceAccount", {
             cluster: cluster,
             manifest: loadBalancerServiceAccountYaml
         });
 
-        const waitForLBServiceAccount = new eks.KubernetesObjectValue(this,'LBServiceAccount',{
+        const waitForLBServiceAccount = new eks.KubernetesObjectValue(this, 'LBServiceAccount', {
             cluster: cluster,
             objectName: "alb-ingress-controller",
             objectType: "serviceaccount",
@@ -526,8 +521,8 @@ export class Services extends Stack {
             jsonPath: "@"
         });
 
-        const loadBalancerCRDYaml = yaml.loadAll(readFileSync("./resources/load_balancer/crds.yaml","utf8")) as Record<string,any>[];
-        const loadBalancerCRDManifest = new eks.KubernetesManifest(this,"loadBalancerCRD",{
+        const loadBalancerCRDYaml = yaml.loadAll(readFileSync("./resources/load_balancer/crds.yaml", "utf8")) as Record<string, any>[];
+        const loadBalancerCRDManifest = new eks.KubernetesManifest(this, "loadBalancerCRD", {
             cluster: cluster,
             manifest: loadBalancerCRDYaml
         });
@@ -539,12 +534,12 @@ export class Services extends Stack {
             repository: "https://aws.github.io/eks-charts",
             namespace: "kube-system",
             values: {
-            clusterName:"PetSite",
-            serviceAccount:{
-                create: false,
-                name: "alb-ingress-controller"
-            },
-            wait: true
+                clusterName: "PetSite",
+                serviceAccount: {
+                    create: false,
+                    name: "alb-ingress-controller"
+                },
+                wait: true
             }
         });
         awsLoadBalancerManifest.node.addDependency(loadBalancerCRDManifest);
@@ -561,7 +556,7 @@ export class Services extends Stack {
             resolveConflicts: 'OVERWRITE',
             preserveOnDelete: false,
             serviceAccountRoleArn: cwserviceaccount.roleArn,
-          });
+        });
 
         const customWidgetResourceControllerPolicy = new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
@@ -609,8 +604,8 @@ export class Services extends Stack {
         customWidgetFunction.addEnvironment("ECS_CLUSTER_ARNS", ecsPayForAdoptionCluster.clusterArn + "," +
             ecsPetListAdoptionCluster.clusterArn + "," + ecsPetSearchCluster.clusterArn);
 
-        var costControlDashboardBody = readFileSync("./resources/cw_dashboard_cost_control.json","utf-8");
-        costControlDashboardBody = costControlDashboardBody.replaceAll("{{YOUR_LAMBDA_ARN}}",customWidgetFunction.functionArn);
+        var costControlDashboardBody = readFileSync("./resources/cw_dashboard_cost_control.json", "utf-8");
+        costControlDashboardBody = costControlDashboardBody.replaceAll("{{YOUR_LAMBDA_ARN}}", customWidgetFunction.functionArn);
 
         const petSiteCostControlDashboard = new cloudwatch.CfnDashboard(this, "PetSiteCostControlDashboard", {
             dashboardName: "PetSite_Cost_Control_Dashboard",
@@ -624,8 +619,8 @@ export class Services extends Stack {
             resourceQuery: {
                 type: 'CLOUDFORMATION_STACK_1_0',
             }
-            });
-            // Enabling CloudWatch Application Insights for Resource Group
+        });
+        // Enabling CloudWatch Application Insights for Resource Group
         const servicesCfnApplication = new applicationinsights.CfnApplication(this, 'ServicesApplicationInsights', {
             resourceGroupName: servicesCfnGroup.name,
             autoConfigurationEnabled: true,
@@ -664,10 +659,10 @@ export class Services extends Stack {
         })));
 
 
-        const petAdoptionsStepFn = new PetAdoptionsStepFn(this,'StepFn');
+        const petAdoptionsStepFn = new PetAdoptionsStepFn(this, 'StepFn');
 
         this.createSsmParameters(new Map(Object.entries({
-            '/petstore/trafficdelaytime':"1",
+            '/petstore/trafficdelaytime': "1",
             '/petstore/rumscript': " ",
             '/petstore/petadoptionsstepfnarn': petAdoptionsStepFn.stepFn.stateMachineArn,
             '/petstore/updateadoptionstatusurl': statusUpdaterService.api.url,
@@ -690,7 +685,7 @@ export class Services extends Stack {
             '/petstore/pethistoryurl': `http://${alb.loadBalancerDnsName}/petadoptionshistory`,
             '/eks/petsite/OIDCProviderUrl': cluster.clusterOpenIdConnectIssuerUrl,
             '/eks/petsite/OIDCProviderArn': cluster.openIdConnectProvider.openIdConnectProviderArn,
-            '/petstore/errormode1':"false"
+            '/petstore/errormode1': "false"
         })));
 
         this.createOuputs(new Map(Object.entries({
