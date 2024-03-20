@@ -67,6 +67,7 @@ export class Services extends Stack {
         const s3_observabilitypetadoptions = new s3.Bucket(this, 's3bucket_petadoption', {
             publicReadAccess: false,
             autoDeleteObjects: true,
+            encryption: s3.BucketEncryption.S3_MANAGED,
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
@@ -102,6 +103,7 @@ export class Services extends Stack {
 
         // Seeds the S3 bucket with pet images
         new s3seeder.BucketDeployment(this, "s3seeder_petadoption", {
+            serverSideEncryption: s3seeder.ServerSideEncryption.AES_256,
             destinationBucket: s3_observabilitypetadoptions,
             sources: [s3seeder.Source.asset('./resources/kitten.zip'), s3seeder.Source.asset('./resources/puppies.zip'), s3seeder.Source.asset('./resources/bunnies.zip')]
         });
